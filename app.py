@@ -118,16 +118,21 @@ st.markdown("""
     </h1>
 """, unsafe_allow_html=True)
 
-# Update the Google AI configuration section
+# Update the Google AI configuration section with better error handling
+st.markdown("### 🔄 App Status")
 try:
     if 'GOOGLE_API_KEY' in st.secrets:
+        st.success("✅ API Key found")
         genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
         model = genai.GenerativeModel('gemini-pro')
+        st.success("✅ Google AI Model configured successfully")
     else:
-        st.error("Please set up your Google API key in Streamlit secrets")
+        st.error("❌ API Key not found in secrets")
+        st.info("Please configure the GOOGLE_API_KEY in Streamlit Cloud settings")
         st.stop()
 except Exception as e:
-    st.error(f"Error configuring Google AI: {str(e)}")
+    st.error(f"❌ Error configuring Google AI: {str(e)}")
+    st.info("Check your API key and internet connection")
     st.stop()
 
 # Create two columns for main layout
@@ -136,17 +141,17 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("### 📊 Choose a Dataset")
     dataset_option = st.radio(
-        label="Dataset Selection",  # Added label
+        label="Dataset Selection",
         options=["Upload My Own", "Iris (Small Classification)", "Breast Cancer (Medium Classification)", 
-         "Synthetic (Large Classification)", "Synthetic Regression (Large)"],
-        label_visibility="collapsed"  # Hides the label but keeps it accessible
+                "Synthetic (Large Classification)", "Synthetic Regression (Large)"],
+        label_visibility="collapsed"
     )
 
     if dataset_option == "Upload My Own":
         uploaded_file = st.file_uploader(
-            label="Upload CSV File",  # Added label
+            label="Upload CSV File",
             type="csv",
-            label_visibility="collapsed"  # Hides the label but keeps it accessible
+            label_visibility="collapsed"
         )
         if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
@@ -196,10 +201,10 @@ if 'df' in locals():
     # Target selection with better styling
     st.markdown("### 🎯 Select Target Variable")
     target_column = st.selectbox(
-        label="Target Variable",  # Added label
+        label="Target Variable",
         options=df.columns.tolist(),
         index=len(df.columns)-1,
-        label_visibility="collapsed"  # Hides the label but keeps it accessible
+        label_visibility="collapsed"
     )
     
     # Analysis button with custom styling
