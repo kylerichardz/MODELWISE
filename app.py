@@ -5,6 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.datasets import load_iris, load_breast_cancer, make_classification
 import google.generativeai as genai
 import os
+import sys
 
 if 'df' not in st.session_state:
     st.session_state.df = None
@@ -33,6 +34,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Add debug info
+st.write("Debug Info:")
+st.write("- Python version:", sys.version)
+st.write("- Streamlit version:", st.__version__)
+st.write("- API Key configured:", 'GOOGLE_API_KEY' in st.secrets)
 
 # Custom CSS
 st.markdown("""
