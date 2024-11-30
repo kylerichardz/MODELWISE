@@ -8,10 +8,8 @@ import os
 
 if 'df' not in st.session_state:
     st.session_state.df = None
-if 'dataset_option' not in st.session_state:
-    st.session_state.dataset_option = None
-if 'target_column' not in st.session_state:
-    st.session_state.target_column = None
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
 
 def get_current_context():
     context = "Current App State:\n"
@@ -117,13 +115,10 @@ st.markdown("""
 st.markdown("### 🔄 App Status")
 try:
     if 'GOOGLE_API_KEY' in st.secrets:
-        st.success("✅ API Key found")
         genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
         model = genai.GenerativeModel('gemini-pro')
-        st.success("✅ Google AI Model configured successfully")
     else:
-        st.error("❌ API Key not found in secrets")
-        st.info("Please configure the GOOGLE_API_KEY in Streamlit Cloud settings")
+        st.error("Please set up your Google API key in Streamlit secrets")
         st.stop()
 except Exception as e:
     st.error(f"❌ Error configuring Google AI: {str(e)}")
@@ -149,41 +144,41 @@ with col1:
             label_visibility="collapsed"
         )
         if uploaded_file is not None:
-            df = pd.read_csv(uploaded_file)
+            st.session_state.df = pd.read_csv(uploaded_file)
     else:
         # Load sample datasets with enhanced descriptions
         if dataset_option == "Iris (Small Classification)":
             data = load_iris()
-            df = pd.DataFrame(data.data, columns=data.feature_names)
-            df['target'] = data.target
+            st.session_state.df = pd.DataFrame(data.data, columns=data.feature_names)
+            st.session_state.df['target'] = data.target
             st.success("🌸 Iris Dataset: Perfect for beginners! Classify iris plants into three species based on flower measurements.")
         
         elif dataset_option == "Breast Cancer (Medium Classification)":
             data = load_breast_cancer()
-            df = pd.DataFrame(data.data, columns=data.feature_names)
-            df['target'] = data.target
+            st.session_state.df = pd.DataFrame(data.data, columns=data.feature_names)
+            st.session_state.df['target'] = data.target
             st.success("🏥 Breast Cancer Dataset: Real-world medical data for binary classification.")
         
         elif dataset_option == "Synthetic (Large Classification)":
             X, y = make_classification(n_samples=10000, n_features=20, n_informative=15, 
                                     n_redundant=5, random_state=42)
-            df = pd.DataFrame(X, columns=[f'feature_{i}' for i in range(20)])
-            df['target'] = y
+            st.session_state.df = pd.DataFrame(X, columns=[f'feature_{i}' for i in range(20)])
+            st.session_state.df['target'] = y
             st.success("🤖 Synthetic Classification: Large-scale dataset with known patterns.")
         
         else:  # Synthetic Regression
             X = np.random.randn(10000, 10)
             y = np.sum(X[:, :3], axis=1) + np.random.randn(10000) * 0.1
-            df = pd.DataFrame(X, columns=[f'feature_{i}' for i in range(10)])
-            df['target'] = y
+            st.session_state.df = pd.DataFrame(X, columns=[f'feature_{i}' for i in range(10)])
+            st.session_state.df['target'] = y
             st.success("📈 Synthetic Regression: Complex numerical predictions with clear patterns.")
 
 with col2:
     st.markdown("### 🎯 Quick Stats")
     if 'df' in locals():
-        st.metric("Samples", f"{df.shape[0]:,}")
-        st.metric("Features", df.shape[1] - 1)
-        st.metric("Missing Values", f"{df.isnull().sum().sum():,}")
+        st.metric("Samples", f"{st.session_state.df.shape[0]:,}")
+        st.metric("Features", st.session_state.df.shape[1] - 1)
+        st.metric("Missing Values", f"{st.session_state.df.isnull().sum().sum():,}")
 
 # Main content area
 if 'df' in locals():
@@ -191,14 +186,14 @@ if 'df' in locals():
     
     # Dataset preview in an expander
     with st.expander("📊 Dataset Preview", expanded=True):
-        st.dataframe(df.head(), use_container_width=True)
+        st.dataframe(st.session_state.df.head(), use_container_width=True)
     
     # Target selection with better styling
     st.markdown("### 🎯 Select Target Variable")
     target_column = st.selectbox(
         label="Target Variable",
-        options=df.columns.tolist(),
-        index=len(df.columns)-1,
+        options=st.session_state.df.columns.tolist(),
+        index=len(st.session_state.df.columns)-1,
         label_visibility="collapsed"
     )
     
@@ -210,11 +205,11 @@ if 'df' in locals():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Dataset Size", f"{len(df):,} samples")
+            st.metric("Dataset Size", f"{len(st.session_state.df):,} samples")
         with col2:
-            st.metric("Features", f"{len(df.columns) - 1} columns")
+            st.metric("Features", f"{len(st.session_state.df.columns) - 1} columns")
         with col3:
-            st.metric("Data Type", "Classification" if len(df[target_column].unique()) < 10 else "Regression")
+            st.metric("Data Type", "Classification" if len(st.session_state.df[target_column].unique()) < 10 else "Regression")
         
         # Model recommendations in a nice card
         st.markdown("""
@@ -223,7 +218,7 @@ if 'df' in locals():
             </div>
         """, unsafe_allow_html=True)
         
-        n_samples = len(df)
+        n_samples = len(st.session_state.df)
         if n_samples < 1000:
             st.info("📊 For small datasets (<1000 samples):")
             st.markdown("- ✨ Linear/Logistic Regression (Simple & Interpretable)")
@@ -251,30 +246,17 @@ for message in st.session_state.messages:
 
 # Chat input
 if prompt := st.chat_input("Ask me anything about the models or your data!"):
-    try:
-        context = get_current_context()
-        full_prompt = f"""
-Context about the current state of the ML Model Selection Advisor:
-{context}
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-User Question: {prompt}
-
-Please provide advice based on this context and your knowledge of machine learning.
-"""
-        
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            try:
-                response = model.generate_content(full_prompt)
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"Error generating response: {str(e)}")
-    except Exception as e:
-        st.error(f"Error processing chat: {str(e)}")
+    with st.chat_message("assistant"):
+        try:
+            response = model.generate_content(prompt)
+            st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+        except Exception as e:
+            st.error("Error generating response. Please try again.")
 
 if not st.session_state.messages:
     st.session_state.messages.append({"role": "assistant", "content": "👋 Hi! I'm your ML advisor. How can I help you?"})
