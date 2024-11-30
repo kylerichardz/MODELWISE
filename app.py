@@ -6,30 +6,25 @@ from sklearn.datasets import load_iris, load_breast_cancer, make_classification
 import google.generativeai as genai
 import os
 
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'dataset_option' not in st.session_state:
+    st.session_state.dataset_option = None
+if 'target_column' not in st.session_state:
+    st.session_state.target_column = None
+
 def get_current_context():
     context = "Current App State:\n"
     
-    if 'df' in locals():
+    if st.session_state.df is not None:
         context += f"""
-Dataset: {dataset_option if 'dataset_option' in locals() else 'Not selected'}
-Number of samples: {df.shape[0]}
-Number of features: {df.shape[1]}
-Features: {', '.join(df.columns.tolist())}
+Dataset: {st.session_state.dataset_option if st.session_state.dataset_option else 'Not selected'}
+Number of samples: {st.session_state.df.shape[0]}
+Number of features: {st.session_state.df.shape[1]}
+Features: {', '.join(st.session_state.df.columns.tolist())}
 """
-        if 'target_column' in locals():
-            context += f"Target variable: {target_column}\n"
-            
-        if 'n_samples' in locals():
-            context += "\nRecommended Models:\n"
-            if n_samples < 1000:
-                context += "- Linear/Logistic Regression (small dataset)\n"
-                context += "- Decision Trees\n"
-            elif n_samples < 10000:
-                context += "- Random Forest (medium dataset)\n"
-                context += "- Support Vector Machines\n"
-            else:
-                context += "- Gradient Boosting (XGBoost, LightGBM)\n"
-                context += "- Neural Networks\n"
+        if st.session_state.target_column:
+            context += f"Target variable: {st.session_state.target_column}\n"
     
     return context
 
@@ -225,6 +220,7 @@ if 'df' in locals():
         st.markdown("""
             <div style='padding: 1rem; background-color: #f8f9fa; border-radius: 10px; margin: 1rem 0;'>
                 <h3 style='color: #2c3e50;'>🎯 Recommended Models</h3>
+            </div>
         """, unsafe_allow_html=True)
         
         n_samples = len(df)
@@ -255,8 +251,9 @@ for message in st.session_state.messages:
 
 # Chat input
 if prompt := st.chat_input("Ask me anything about the models or your data!"):
-    context = get_current_context()
-    full_prompt = f"""
+    try:
+        context = get_current_context()
+        full_prompt = f"""
 Context about the current state of the ML Model Selection Advisor:
 {context}
 
@@ -264,15 +261,20 @@ User Question: {prompt}
 
 Please provide advice based on this context and your knowledge of machine learning.
 """
-    
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+        
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        response = model.generate_content(full_prompt)
-        st.markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+        with st.chat_message("assistant"):
+            try:
+                response = model.generate_content(full_prompt)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"Error generating response: {str(e)}")
+    except Exception as e:
+        st.error(f"Error processing chat: {str(e)}")
 
 if not st.session_state.messages:
     st.session_state.messages.append({"role": "assistant", "content": "👋 Hi! I'm your ML advisor. How can I help you?"})
