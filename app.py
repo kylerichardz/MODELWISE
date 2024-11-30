@@ -118,12 +118,17 @@ st.markdown("""
     </h1>
 """, unsafe_allow_html=True)
 
-# Configure Google AI (update this part)
-if 'GOOGLE_API_KEY' in st.secrets:
-    genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
-else:
-    st.error("Please set up your Google API key in Streamlit secrets")
-model = genai.GenerativeModel('gemini-pro')
+# Update the Google AI configuration section
+try:
+    if 'GOOGLE_API_KEY' in st.secrets:
+        genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
+        model = genai.GenerativeModel('gemini-pro')
+    else:
+        st.error("Please set up your Google API key in Streamlit secrets")
+        st.stop()
+except Exception as e:
+    st.error(f"Error configuring Google AI: {str(e)}")
+    st.stop()
 
 # Create two columns for main layout
 col1, col2 = st.columns([2, 1])
@@ -138,7 +143,11 @@ with col1:
     )
 
     if dataset_option == "Upload My Own":
-        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+        uploaded_file = st.file_uploader(
+            label="Upload CSV File",  # Added label
+            type="csv",
+            label_visibility="collapsed"  # Hides the label but keeps it accessible
+        )
         if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
     else:
