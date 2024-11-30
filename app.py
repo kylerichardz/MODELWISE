@@ -131,9 +131,10 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("### 📊 Choose a Dataset")
     dataset_option = st.radio(
-        "",  # Empty label as we used header above
-        ["Upload My Own", "Iris (Small Classification)", "Breast Cancer (Medium Classification)", 
-         "Synthetic (Large Classification)", "Synthetic Regression (Large)"]
+        label="Dataset Selection",  # Added label
+        options=["Upload My Own", "Iris (Small Classification)", "Breast Cancer (Medium Classification)", 
+         "Synthetic (Large Classification)", "Synthetic Regression (Large)"],
+        label_visibility="collapsed"  # Hides the label but keeps it accessible
     )
 
     if dataset_option == "Upload My Own":
@@ -186,9 +187,10 @@ if 'df' in locals():
     # Target selection with better styling
     st.markdown("### 🎯 Select Target Variable")
     target_column = st.selectbox(
-        "",  # Empty label for cleaner look
+        label="Target Variable",  # Added label
         options=df.columns.tolist(),
-        index=len(df.columns)-1
+        index=len(df.columns)-1,
+        label_visibility="collapsed"  # Hides the label but keeps it accessible
     )
     
     # Analysis button with custom styling
