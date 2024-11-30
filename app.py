@@ -35,6 +35,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Add immediate error checking
+if 'GOOGLE_API_KEY' not in st.secrets:
+    st.error("❌ API Key not found in secrets")
+    st.stop()
+
+try:
+    genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
+    model = genai.GenerativeModel('gemini-pro')
+    st.success("✅ API configured successfully")
+except Exception as e:
+    st.error(f"❌ Error: {str(e)}")
+    st.stop()
+
 # Add debug info
 st.write("Debug Info:")
 st.write("- Python version:", sys.version)
@@ -117,20 +130,6 @@ st.markdown("""
         🤖 Machine Learning Model Selection Advisor
     </h1>
 """, unsafe_allow_html=True)
-
-# Update the Google AI configuration section with better error handling
-st.markdown("### 🔄 App Status")
-try:
-    if 'GOOGLE_API_KEY' in st.secrets:
-        genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
-        model = genai.GenerativeModel('gemini-pro')
-    else:
-        st.error("Please set up your Google API key in Streamlit secrets")
-        st.stop()
-except Exception as e:
-    st.error(f"❌ Error configuring Google AI: {str(e)}")
-    st.info("Check your API key and internet connection")
-    st.stop()
 
 # Create two columns for main layout
 col1, col2 = st.columns([2, 1])
